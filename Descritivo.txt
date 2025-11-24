@@ -1,0 +1,26 @@
+8. Rede de Locais (Salas, Ambientes, Labirinto)
+Tipo: Grafo não orientado
+Representação sugerida: Matriz de adjacência
+Vértices: Salas ou locais
+Arestas: Passagens diretas entre as salas
+Implementação:
+    • Inserir e remover salas e passagens.
+    • Fazer BFS para encontrar todos os locais acessíveis a partir de uma sala inicial.
+    • Verificar se há salas inacessíveis no mapa.
+2. Verificar Conectividade do Grafo
+Objetivo: Implementar uma função que detecta se o grafo é conexo (totalmente conectado).
+* Se, através de um percurso, e a partir de um ponto inicial informado pelo usuário, todos os vértices forem
+visitados, o grafo é conexo; caso contrário, há componentes desconexos.
+3. Busca de Caminho entre Dois Vértices
+Objetivo: Encontrar e mostrar o(s) caminho(s) possíveis entre dois vértices informados pelo usuário.
+* Pode ser feito com BFS (para menor número de arestas) ou DFS (qualquer caminho), dependendo da aplicação.
+Sempre relacionem ao tema escolhido para que a informação seja interessante ao usuário.
+* O programa exibe o caminho percorrido, como, por exemplo: Caminho de A até E: A -> C -> D -> E
+4. Verificação de Grau de Vértice
+Objetivo: Calcular e exibir o grau de cada vértice.
+* No grafo orientado, isso envolve contar arestas de entrada e de saída.
+* No grafo não orientado, apenas o número total de conexões.
+5. Salvar e Carregar o Grafo de Arquivo
+Objetivo: Permitir gravar e recuperar o grafo de um arquivo texto.
+* Ao sair, o programa salva vértices e arestas em um arquivo.
+* Na inicialização, lê o arquivo e reconstrói o grafo.
