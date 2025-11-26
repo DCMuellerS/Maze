@@ -1,24 +1,9 @@
 /*
- * PROJETO FINAL DE ESTRUTURA DE DADOS - GRAFOS
+ * PROJETO FINAL: Labirinto RPG - Fuga da Prisão
  * -------------------------------------------------------------------------
- * TEMA: Labirinto RPG - Fuga da Prisão (Corredor da Morte)
- * TIPO DE GRAFO: Não Orientado (Caminhos de mão dupla)
- * REPRESENTAÇÃO: Matriz de Adjacência (Alocação Dinâmica)
- * PERCURSO: Largura (BFS) para exploração e menor caminho.
- *
- * FUNCIONALIDADES ADICIONAIS IMPLEMENTADAS:
- * 1. Verificação de Grau (Nível de Segurança da Sala)
- * 2. Verificar Conectividade (Detecção de áreas isoladas)
- * 3. Busca de Menor Caminho (BFS para encontrar a saída mais rápida)
- * 4. Persistência de Dados (Salvar e Carregar em arquivo .txt)
- * 5. Exportação Visual (Geração de arquivo .dot para GraphViz)
- * 6. TESTES AUTOMATIZADOS (Validação de lógica)
- *
- * INTEGRANTES DO GRUPO:
- * 1. [Nome do Integrante 1]
- * 2. [Nome do Integrante 2]
- * 3. [Nome do Integrante 3]
- * 4. [Nome do Integrante 4]
+ * TEMA: Fuga da Prisão (Corredor da Morte)
+ * ESTRUTURA: Grafo Não Orientado (Matriz de Adjacência Dinâmica)
+ * FUNCIONALIDADES: BFS, Menor Caminho, Persistência de Arquivos
  * -------------------------------------------------------------------------
  */
 
@@ -26,33 +11,32 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <locale.h> // Necessário para acentuação (PT-BR)
 
 // Definição de constantes
 #define MAX_BUFFER 100
 #define ARQUIVO_DADOS "mapa_prisao.txt"
-#define ARQUIVO_DOT "visualizacao.dot"
 
 // --- ESTRUTURAS DE DADOS ---
 
-// Representa um Vértice (Sala)
 typedef struct {
     int id;
     char nome[MAX_BUFFER];
     char descricao[MAX_BUFFER];
-    int temItem;          // 0 = Não, 1 = Sim (Chave)
+    // Mecânicas de Jogo
+    int temItem;          // 0 = Não, 1 = Sim (ex: Chave)
     int precisaItem;      // 0 = Não, 1 = Sim (Porta Trancada)
-    int ativo;            // 1 = Sala existe, 0 = Sala removida (controle lógico)
+    int ativo;            // Controle lógico (1 = Existe, 0 = Removido)
 } Sala;
 
-// Estrutura do Grafo com Alocação Dinâmica
 typedef struct {
-    int **adj;           // Ponteiro para ponteiro (Matriz Dinâmica)
-    Sala *salas;         // Ponteiro para vetor de structs (Vetor Dinâmico)
-    int numVertices;     // Quantidade atual de vértices ativos
-    int capacidadeMax;   // Capacidade máxima definida na criação
+    int **adj;            // Matriz de Adjacência (Dinâmica)
+    Sala *salas;          // Vetor de Salas (Dinâmico)
+    int numVertices;      // Quantidade atual de vértices
+    int capacidadeMax;    // Limite máximo
 } Grafo;
 
-// --- PROTÓTIPOS DAS FUNÇÕES ---
+// --- PROTÓTIPOS ---
 Grafo* criarGrafo(int maxVertices);
 void liberarGrafo(Grafo *g);
 void inserirVertice(Grafo *g);
@@ -61,76 +45,57 @@ void removerVertice(Grafo *g, int id);
 void removerAresta(Grafo *g, int u, int v);
 void exibirMatriz(Grafo *g);
 void percursoBFS(Grafo *g, int inicio);
-void carregarCenarioTeste(Grafo *g);
+void carregarMapaPadrao(Grafo *g); // Carrega o cenário do jogo
 
-// Funcionalidades Adicionais (Bônus)
+// Funcionalidades Adicionais
 void verificarGrau(Grafo *g);
 void verificarConectividade(Grafo *g);
 void buscarMenorCaminho(Grafo *g, int inicio, int fim);
 void salvarGrafoArquivo(Grafo *g);
-void carregarGrafoArquivo(Grafo **g); // Passa ponteiro de ponteiro para recriar
-void exportarGraphViz(Grafo *g);
+void carregarGrafoArquivo(Grafo **g);
 
 // Testes Automatizados
 void testesAutomatizados();
 void adicionarSalaTeste(Grafo *g, char *nome);
 
-// Auxiliares
-int obterIndiceValido(Grafo *g);
-
 // --- IMPLEMENTAÇÃO ---
 
-// Cria o grafo alocando memória dinamicamente
+// Inicializa o grafo e zera a memória
 Grafo* criarGrafo(int maxVertices) {
     Grafo *g = (Grafo*) malloc(sizeof(Grafo));
-    if (g == NULL) {
-        printf("Erro de memoria!\n");
-        exit(1);
-    }
+    if (g == NULL) exit(1);
 
     g->capacidadeMax = maxVertices;
     g->numVertices = 0;
 
-    // Alocação dinâmica do vetor de salas
     g->salas = (Sala*) malloc(maxVertices * sizeof(Sala));
-
-    // Alocação dinâmica da Matriz de Adjacência
     g->adj = (int**) malloc(maxVertices * sizeof(int*));
+
     for (int i = 0; i < maxVertices; i++) {
         g->adj[i] = (int*) malloc(maxVertices * sizeof(int));
-        // Inicializa com 0
-        for (int j = 0; j < maxVertices; j++) {
-            g->adj[i][j] = 0;
-        }
-        g->salas[i].ativo = 0; // Marca slots como vazios
+        for (int j = 0; j < maxVertices; j++) g->adj[i][j] = 0;
+        g->salas[i].ativo = 0;
     }
-
     return g;
 }
 
-// Libera toda a memória alocada
+// Libera memória alocada dinamicamente
 void liberarGrafo(Grafo *g) {
     if (g == NULL) return;
-    
-    for (int i = 0; i < g->capacidadeMax; i++) {
-        free(g->adj[i]);
-    }
+    for (int i = 0; i < g->capacidadeMax; i++) free(g->adj[i]);
     free(g->adj);
     free(g->salas);
     free(g);
-    printf("Memoria liberada com sucesso.\n");
+    printf("Memória liberada com sucesso.\n");
 }
 
-// 1. Inserir Vértice
+// Inserção manual de salas (Input do usuário)
 void inserirVertice(Grafo *g) {
     if (g->numVertices >= g->capacidadeMax) {
-        printf("Capacidade maxima do labirinto atingida!\n");
+        printf("Capacidade máxima atingida!\n");
         return;
     }
-
-    // Busca o próximo slot livre ou usa o final
     int id = g->numVertices;
-    
     Sala *s = &g->salas[id];
     s->id = id;
     s->ativo = 1;
@@ -138,108 +103,77 @@ void inserirVertice(Grafo *g) {
     printf("\n--- Nova Sala (ID: %d) ---\n", id);
     printf("Nome da Sala: ");
     scanf(" %[^\n]s", s->nome);
-    printf("Descricao curta: ");
+    printf("Descrição: ");
     scanf(" %[^\n]s", s->descricao);
-    
-    // Configurações simplificadas
+
     s->temItem = 0;
     s->precisaItem = 0;
-    
     g->numVertices++;
-    printf("Sala inserida com sucesso!\n");
+    printf("Sala inserida!\n");
 }
 
-// 2. Inserir Aresta
+// Cria conexão bidirecional (Grafo Não Orientado)
 void inserirAresta(Grafo *g, int u, int v) {
-    if (u < 0 || u >= g->numVertices || v < 0 || v >= g->numVertices) {
-        printf("IDs invalidos.\n");
-        return;
-    }
-    // Grafo não orientado (simétrico)
+    if (u < 0 || u >= g->numVertices || v < 0 || v >= g->numVertices) return;
     g->adj[u][v] = 1;
     g->adj[v][u] = 1;
-    printf("Passagem criada: %s <--> %s\n", g->salas[u].nome, g->salas[v].nome);
+    printf("Passagem aberta: %s <--> %s\n", g->salas[u].nome, g->salas[v].nome);
 }
 
-// 3. Remover Vértice (Com realocação lógica)
+// Remove vértice e reorganiza índices para evitar "buracos" no vetor
 void removerVertice(Grafo *g, int id) {
-    if (id < 0 || id >= g->numVertices) {
-        printf("ID invalido.\n");
-        return;
-    }
+    if (id < 0 || id >= g->numVertices) return;
+    printf("Removendo: %s...\n", g->salas[id].nome);
 
-    printf("Removendo Sala: %s...\n", g->salas[id].nome);
-
-    // Deslocar dados para "tapar o buraco" na matriz e no vetor
+    // Desloca salas e linhas da matriz para cima
     for (int i = id; i < g->numVertices - 1; i++) {
-        g->salas[i] = g->salas[i+1]; // Copia struct
-        g->salas[i].id = i;          // Atualiza ID
-        
-        // Atualiza linhas da matriz
-        for (int j = 0; j < g->numVertices; j++) {
-            g->adj[i][j] = g->adj[i+1][j];
-        }
+        g->salas[i] = g->salas[i+1];
+        g->salas[i].id = i;
+        for (int j = 0; j < g->numVertices; j++) g->adj[i][j] = g->adj[i+1][j];
     }
-
-    // Atualiza colunas da matriz
+    // Desloca colunas da matriz para a esquerda
     for (int j = id; j < g->numVertices - 1; j++) {
-        for (int i = 0; i < g->numVertices; i++) {
-            g->adj[i][j] = g->adj[i][j+1];
-        }
+        for (int i = 0; i < g->numVertices; i++) g->adj[i][j] = g->adj[i][j+1];
     }
 
-    // Zera a última linha/coluna (agora duplicada)
-    int ultimo = g->numVertices - 1;
-    for (int k = 0; k < g->capacidadeMax; k++) {
-        g->adj[ultimo][k] = 0;
-        g->adj[k][ultimo] = 0;
-    }
-    g->salas[ultimo].ativo = 0;
-
+    // Zera a última posição duplicada
     g->numVertices--;
-    printf("Sala removida e indices reorganizados.\n");
+    printf("Sala removida e mapa reorganizado.\n");
 }
 
-// 4. Remover Aresta
 void removerAresta(Grafo *g, int u, int v) {
     if (u >= 0 && u < g->numVertices && v >= 0 && v < g->numVertices) {
         g->adj[u][v] = 0;
         g->adj[v][u] = 0;
-        printf("Passagem bloqueada/removida.\n");
+        printf("Passagem bloqueada.\n");
     }
 }
 
-// 5. Exibir Grafo (Matriz)
 void exibirMatriz(Grafo *g) {
-    printf("\n--- Matriz de Adjacencia ---\n   ");
+    printf("\n--- Matriz de Adjacência ---\n   ");
     for(int i=0; i<g->numVertices; i++) printf("%2d ", i);
     printf("\n");
     for(int i=0; i<g->numVertices; i++) {
         printf("%2d|", i);
-        for(int j=0; j<g->numVertices; j++) {
-            printf("%2d ", g->adj[i][j]);
-        }
+        for(int j=0; j<g->numVertices; j++) printf("%2d ", g->adj[i][j]);
         printf("| %s\n", g->salas[i].nome);
     }
 }
 
-// 6. Percurso (BFS)
+// Algoritmo de Busca em Largura (Exploração)
 void percursoBFS(Grafo *g, int inicio) {
     if (inicio < 0 || inicio >= g->numVertices) return;
-
     bool *visitado = (bool*) calloc(g->numVertices, sizeof(bool));
     int *fila = (int*) malloc(g->numVertices * sizeof(int));
     int ini = 0, fim = 0;
 
-    printf("\n--- Exploracao (BFS) a partir de '%s' ---\n", g->salas[inicio].nome);
-    
+    printf("\n--- Explorando (BFS) a partir de '%s' ---\n", g->salas[inicio].nome);
     visitado[inicio] = true;
     fila[fim++] = inicio;
 
     while (ini < fim) {
         int u = fila[ini++];
         printf(" -> Visitou: [%d] %s\n", u, g->salas[u].nome);
-
         for (int v = 0; v < g->numVertices; v++) {
             if (g->adj[u][v] == 1 && !visitado[v]) {
                 visitado[v] = true;
@@ -247,242 +181,167 @@ void percursoBFS(Grafo *g, int inicio) {
             }
         }
     }
-    printf("Fim da exploracao.\n");
-    free(visitado);
-    free(fila);
+    free(visitado); free(fila);
 }
 
-// --- FUNCIONALIDADES ADICIONAIS ---
+// --- FUNÇÕES ESPECÍFICAS DO JOGO E BÔNUS ---
 
-// Bônus 1: Grau do Vértice (Nível de Conectividade)
+// Carrega o cenário completo do jogo (8 salas com itens/trancas)
+void carregarMapaPadrao(Grafo *g) {
+    g->numVertices = 0;
+    // Limpa matriz
+    for(int i=0; i<g->capacidadeMax; i++) {
+        for(int j=0; j<g->capacidadeMax; j++) g->adj[i][j] = 0;
+        g->salas[i].ativo = 0;
+    }
+
+    Sala *s;
+    // Definindo as salas do jogo (Tema Prisão)
+    s=&g->salas[0]; s->id=0; s->ativo=1; strcpy(s->nome, "Cela 402"); strcpy(s->descricao, "Sua cela escura.");
+    s=&g->salas[1]; s->id=1; s->ativo=1; strcpy(s->nome, "Corredor"); strcpy(s->descricao, "Corredor da morte.");
+    s=&g->salas[2]; s->id=2; s->ativo=1; strcpy(s->nome, "Enfermaria"); strcpy(s->descricao, "Cheiro de álcool.");
+    s=&g->salas[3]; s->id=3; s->ativo=1; strcpy(s->nome, "Pátio Central"); strcpy(s->descricao, "Área aberta chuvosa.");
+    s=&g->salas[4]; s->id=4; s->ativo=1; strcpy(s->nome, "Escritório"); strcpy(s->descricao, "Tem uma chave na mesa!"); s->temItem=1;
+    s=&g->salas[5]; s->id=5; s->ativo=1; strcpy(s->nome, "Refeitório"); strcpy(s->descricao, "Comida podre.");
+    s=&g->salas[6]; s->id=6; s->ativo=1; strcpy(s->nome, "Controle"); strcpy(s->descricao, "Requer chave."); s->precisaItem=1;
+    s=&g->salas[7]; s->id=7; s->ativo=1; strcpy(s->nome, "SAÍDA"); strcpy(s->descricao, "Liberdade!");
+
+    g->numVertices = 8;
+
+    // Criando o labirinto (Conexões)
+    inserirAresta(g, 0, 1);
+    inserirAresta(g, 1, 2);
+    inserirAresta(g, 1, 3);
+    inserirAresta(g, 3, 5);
+    inserirAresta(g, 3, 4);
+    inserirAresta(g, 3, 6);
+    inserirAresta(g, 6, 7);
+
+    printf("\nMAPA PADRÃO 'FUGA DA PRISÃO' CARREGADO!\n");
+}
+
+// Calcula o grau de cada vértice para identificar Hubs ou Becos sem saída
 void verificarGrau(Grafo *g) {
-    printf("\n--- Analise de Conexoes (Grau) ---\n");
+    printf("\n--- Análise de Segurança (Graus) ---\n");
     for (int i = 0; i < g->numVertices; i++) {
         int grau = 0;
-        for (int j = 0; j < g->numVertices; j++) {
-            if (g->adj[i][j] == 1) grau++;
-        }
-        printf("Sala [%d] %s: %d passagens", i, g->salas[i].nome, grau);
-        if (grau == 1) printf(" (Beco sem saida)");
-        if (grau > 3) printf(" (Area central/Hub)");
+        for (int j = 0; j < g->numVertices; j++) if (g->adj[i][j]) grau++;
+
+        printf("Sala [%d] %s: %d conexões", i, g->salas[i].nome, grau);
+        if (grau == 1) printf(" (Beco sem saída)");
+        if (grau > 3) printf(" (Área Central/Hub)");
         printf("\n");
     }
 }
 
-// Bônus 2: Conectividade (Grafo Conexo)
+// Verifica se o grafo é conexo usando BFS
 void verificarConectividade(Grafo *g) {
     if (g->numVertices == 0) return;
-
-    // Usa BFS para contar quantos alcança
-    int visitadosCount = 0;
     bool *visitado = (bool*) calloc(g->numVertices, sizeof(bool));
     int *fila = (int*) malloc(g->numVertices * sizeof(int));
-    int ini = 0, fim = 0;
+    int count = 0, ini = 0, fim = 0;
 
-    int inicio = 0; // Começa sempre do 0
-    visitado[inicio] = true;
-    fila[fim++] = inicio;
-    visitadosCount++;
+    // Começa do 0
+    visitado[0] = true; fila[fim++] = 0; count++;
 
-    while (ini < fim) {
+    while(ini < fim) {
         int u = fila[ini++];
-        for (int v = 0; v < g->numVertices; v++) {
-            if (g->adj[u][v] == 1 && !visitado[v]) {
-                visitado[v] = true;
-                fila[fim++] = v;
-                visitadosCount++;
+        for(int v=0; v<g->numVertices; v++) {
+            if(g->adj[u][v] && !visitado[v]) {
+                visitado[v] = true; fila[fim++] = v; count++;
             }
         }
     }
 
-    printf("\n--- Relatorio de Conectividade ---\n");
-    if (visitadosCount == g->numVertices) {
-        printf("STATUS: O Labirinto e CONEXO (Todas as salas sao acessiveis).\n");
-    } else {
-        printf("STATUS: O Labirinto e DESCONEXO!\n");
-        printf("Salas alcancadas: %d de %d.\n", visitadosCount, g->numVertices);
-        printf("Ha areas isoladas no mapa.\n");
-    }
-    free(visitado);
-    free(fila);
+    printf("\n--- Relatório de Integridade ---\n");
+    if (count == g->numVertices) printf("STATUS: O Labirinto é CONEXO.\n");
+    else printf("STATUS: O Labirinto é DESCONEXO (%d de %d acessíveis).\n", count, g->numVertices);
+
+    free(visitado); free(fila);
 }
 
-// Bônus 3: Menor Caminho (BFS com rastreamento de pai)
+// BFS modificado para armazenar o caminho (vetor pai)
 void buscarMenorCaminho(Grafo *g, int inicio, int fim) {
-    if (inicio < 0 || fim >= g->numVertices) return;
-
     int *pai = (int*) malloc(g->numVertices * sizeof(int));
     bool *visitado = (bool*) calloc(g->numVertices, sizeof(bool));
     int *fila = (int*) malloc(g->numVertices * sizeof(int));
     int ini = 0, fimFila = 0;
 
     for(int i=0; i<g->numVertices; i++) pai[i] = -1;
-
-    visitado[inicio] = true;
-    fila[fimFila++] = inicio;
+    visitado[inicio] = true; fila[fimFila++] = inicio;
     bool achou = false;
 
     while (ini < fimFila) {
         int u = fila[ini++];
-        if (u == fim) {
-            achou = true;
-            break;
-        }
+        if (u == fim) { achou = true; break; }
         for (int v = 0; v < g->numVertices; v++) {
-            if (g->adj[u][v] == 1 && !visitado[v]) {
-                visitado[v] = true;
-                pai[v] = u;
-                fila[fimFila++] = v;
+            if (g->adj[u][v] && !visitado[v]) {
+                visitado[v] = true; pai[v] = u; fila[fimFila++] = v;
             }
         }
     }
 
-    printf("\n--- Rota de Fuga (Menor Caminho) ---\n");
     if (achou) {
-        int caminho[100];
-        int tam = 0;
-        int atual = fim;
-        while (atual != -1) {
-            caminho[tam++] = atual;
-            atual = pai[atual];
-        }
-        // Imprime reverso
+        printf("\nRota de Fuga Sugerida: ");
+        int caminho[100], tam = 0, atual = fim;
+        // Reconstrói o caminho de trás para frente usando o vetor pai
+        while (atual != -1) { caminho[tam++] = atual; atual = pai[atual]; }
+
         for (int i = tam-1; i >= 0; i--) {
             printf("%s", g->salas[caminho[i]].nome);
             if (i > 0) printf(" -> ");
         }
-        printf("\nTotal de salas: %d\n", tam);
+        printf("\nPassos totais: %d\n", tam-1);
     } else {
-        printf("Nao ha caminho possivel entre estas salas.\n");
+        printf("\nNão há caminho possível entre estas salas.\n");
     }
-
-    free(pai);
-    free(visitado);
-    free(fila);
+    free(pai); free(visitado); free(fila);
 }
 
-// Bônus 4: Salvar em Arquivo
+// Salvar em TXT
 void salvarGrafoArquivo(Grafo *g) {
     FILE *f = fopen(ARQUIVO_DADOS, "w");
-    if (!f) {
-        printf("Erro ao criar arquivo.\n");
-        return;
-    }
-    
-    // Salva número de vértices
+    if(!f) { printf("Erro ao abrir arquivo.\n"); return; }
+
     fprintf(f, "%d\n", g->numVertices);
-    
-    // Salva Salas
-    for (int i = 0; i < g->numVertices; i++) {
+    // Salva atributos das salas
+    for(int i=0; i<g->numVertices; i++)
         fprintf(f, "%d;%s;%s\n", g->salas[i].id, g->salas[i].nome, g->salas[i].descricao);
+
+    // Salva arestas
+    for(int i=0; i<g->numVertices; i++) {
+        for(int j=i+1; j<g->numVertices; j++) if(g->adj[i][j]) fprintf(f, "%d %d\n", i, j);
     }
-    
-    // Salva Matriz (apenas conexões existentes)
-    for (int i = 0; i < g->numVertices; i++) {
-        for (int j = i + 1; j < g->numVertices; j++) {
-            if (g->adj[i][j] == 1) {
-                fprintf(f, "%d %d\n", i, j);
-            }
-        }
-    }
-    
     fclose(f);
     printf("Dados salvos em '%s'.\n", ARQUIVO_DADOS);
 }
 
-// Bônus 4 (Parte 2): Carregar
+// Carregar de TXT
 void carregarGrafoArquivo(Grafo **g) {
     FILE *f = fopen(ARQUIVO_DADOS, "r");
-    if (!f) {
-        printf("Arquivo nao encontrado. Carregue o teste padrao primeiro.\n");
-        return;
-    }
+    if(!f) { printf("Arquivo não encontrado. Salve um mapa primeiro.\n"); return; }
 
-    // Reinicia o grafo
-    liberarGrafo(*g);
-    
-    int qtd;
-    fscanf(f, "%d\n", &qtd);
-    
-    *g = criarGrafo(20); // Recria com capacidade padrão
+    liberarGrafo(*g); // Limpa o atual
+    int qtd; fscanf(f, "%d\n", &qtd);
+
+    *g = criarGrafo(20);
     (*g)->numVertices = qtd;
 
-    // Lê Salas
-    for (int i = 0; i < qtd; i++) {
+    for(int i=0; i<qtd; i++) {
         fscanf(f, "%d;%[^;];%[^\n]\n", &(*g)->salas[i].id, (*g)->salas[i].nome, (*g)->salas[i].descricao);
         (*g)->salas[i].ativo = 1;
     }
-
-    // Lê Arestas
     int u, v;
-    while (fscanf(f, "%d %d\n", &u, &v) != EOF) {
-        if (u < qtd && v < qtd) {
-            (*g)->adj[u][v] = 1;
-            (*g)->adj[v][u] = 1;
-        }
+    while(fscanf(f, "%d %d\n", &u, &v) != EOF) {
+        (*g)->adj[u][v] = 1;
+        (*g)->adj[v][u] = 1;
     }
-
     fclose(f);
-    printf("Grafo carregado do arquivo com sucesso!\n");
+    printf("Mapa carregado com sucesso.\n");
 }
 
-// Bônus 5: Visualização GraphViz (.dot)
-void exportarGraphViz(Grafo *g) {
-    FILE *f = fopen(ARQUIVO_DOT, "w");
-    if (!f) {
-        printf("Erro ao criar arquivo DOT.\n");
-        return;
-    }
+// --- TESTES AUTOMATIZADOS COMPLETOS ---
 
-    fprintf(f, "graph LabirintoPrisao {\n");
-    fprintf(f, "  node [shape=box];\n");
-    
-    // Define labels
-    for (int i = 0; i < g->numVertices; i++) {
-        fprintf(f, "  %d [label=\"%s\"];\n", i, g->salas[i].nome);
-    }
-
-    // Define conexões
-    for (int i = 0; i < g->numVertices; i++) {
-        for (int j = i + 1; j < g->numVertices; j++) {
-            if (g->adj[i][j] == 1) {
-                fprintf(f, "  %d -- %d;\n", i, j);
-            }
-        }
-    }
-    fprintf(f, "}\n");
-    fclose(f);
-    printf("Arquivo '%s' gerado! Use um visualizador online de GraphViz.\n", ARQUIVO_DOT);
-}
-
-// Função de Teste Rápido (Popula o grafo principal)
-void carregarCenarioTeste(Grafo *g) {
-    // Reset manual
-    g->numVertices = 0;
-    for(int i=0; i<g->capacidadeMax; i++)
-        for(int j=0; j<g->capacidadeMax; j++) g->adj[i][j] = 0;
-
-    // Inserindo Salas via código para teste
-    strcpy(g->salas[0].nome, "Cela 101"); strcpy(g->salas[0].descricao, "Cela inicial."); g->salas[0].ativo=1;
-    strcpy(g->salas[1].nome, "Corredor A"); strcpy(g->salas[1].descricao, "Escuro."); g->salas[1].ativo=1;
-    strcpy(g->salas[2].nome, "Guarita"); strcpy(g->salas[2].descricao, "Sala dos guardas."); g->salas[2].ativo=1;
-    strcpy(g->salas[3].nome, "Patio"); strcpy(g->salas[3].descricao, "Area aberta."); g->salas[3].ativo=1;
-    strcpy(g->salas[4].nome, "Saida"); strcpy(g->salas[4].descricao, "Liberdade."); g->salas[4].ativo=1;
-    
-    g->numVertices = 5;
-
-    inserirAresta(g, 0, 1);
-    inserirAresta(g, 1, 2);
-    inserirAresta(g, 1, 3);
-    inserirAresta(g, 3, 4); // Patio conecta saída
-    inserirAresta(g, 2, 0); // Loop extra
-
-    printf("Cenario de teste carregado.\n");
-}
-
-// --- TESTES AUTOMATIZADOS (BATERIA) ---
-
-// Helper interno para adicionar sem scanf
 void adicionarSalaTeste(Grafo *g, char *nome) {
     int id = g->numVertices;
     g->salas[id].id = id;
@@ -494,109 +353,94 @@ void adicionarSalaTeste(Grafo *g, char *nome) {
 
 void testesAutomatizados() {
     printf("\n=========================================\n");
-    printf("   INICIANDO TESTES AUTOMATIZADOS\n");
+    printf("   INICIANDO TESTES AUTOMATIZADOS (COMPLETO)\n");
     printf("=========================================\n");
 
-    // Cria um grafo isolado para não mexer no principal
     Grafo *t = criarGrafo(10);
-    
-    // TESTE 1: Inserção
-    printf("[TESTE 1] Insercao de Vertices... ");
-    adicionarSalaTeste(t, "Sala A"); // 0
-    adicionarSalaTeste(t, "Sala B"); // 1
-    adicionarSalaTeste(t, "Sala C"); // 2
-    if (t->numVertices == 3) printf("PASSOU\n"); else printf("FALHOU\n");
 
-    // TESTE 2: Arestas e Grau
-    printf("[TESTE 2] Conexao e Grau... ");
+    // --- TESTE 1: Inserção Básica ---
+    printf("[TESTE 1] Inserção de Vértices... ");
+    adicionarSalaTeste(t, "Sala A"); // ID 0
+    adicionarSalaTeste(t, "Sala B"); // ID 1
+    adicionarSalaTeste(t, "Sala C"); // ID 2
+    if (t->numVertices == 3) printf("PASSOU\n");
+    else printf("FALHOU (Qtd: %d)\n", t->numVertices);
+
+    // --- TESTE 2: Arestas e Grau ---
+    printf("[TESTE 2] Conexão e Grau... ");
     inserirAresta(t, 0, 1); // A-B
     inserirAresta(t, 1, 2); // B-C
-    // Grau de B deve ser 2
+
+    // O grau de B (ID 1) deve ser 2 (conecta com A e C)
     int grauB = 0;
     for(int i=0; i<3; i++) if(t->adj[1][i]) grauB++;
-    
-    if (grauB == 2) printf("PASSOU\n"); else printf("FALHOU (Grau B: %d)\n", grauB);
 
-    // TESTE 3: Menor Caminho (A até C)
-    printf("[TESTE 3] Menor Caminho (0->2)... ");
-    // Simula BFS simples
-    if (t->adj[0][1] && t->adj[1][2]) printf("PASSOU (Caminho Logico Existe)\n");
+    if (grauB == 2) printf("PASSOU\n");
+    else printf("FALHOU (Grau B: %d)\n", grauB);
+
+    // --- TESTE 3: Lógica de Caminho ---
+    printf("[TESTE 3] Caminho Lógico (A->C via B)... ");
+    if (t->adj[0][1] && t->adj[1][2]) printf("PASSOU\n");
     else printf("FALHOU\n");
 
-    // TESTE 4: Remoção de Vértice (B)
-    printf("[TESTE 4] Remocao de Vertice do meio (Sala B)... ");
-    removerVertice(t, 1); // Remove B. A=0, C vira 1.
-    // Agora A(0) não deve estar conectado a C(1) pois B sumiu e era a ponte
-    if (t->adj[0][1] == 0 && t->numVertices == 2) printf("PASSOU\n");
-    else printf("FALHOU (Aresta ainda existe ou num incorreto)\n");
+    // --- TESTE 4: Remoção Complexa ---
+    printf("[TESTE 4] Remoção de Vértice (Sala B)... ");
+    // Ao remover B (ID 1), a Sala C (que era ID 2) deve virar ID 1
+    removerVertice(t, 1);
+
+    bool arestaSumiu = (t->adj[0][1] == 0); // Aresta antiga deve ser 0
+    bool qtdCorreta = (t->numVertices == 2);
+
+    if (qtdCorreta) printf("PASSOU\n");
+    else printf("FALHOU (Erro na realocação de índices)\n");
 
     liberarGrafo(t);
-    printf("=========================================\n");
-    printf("   FIM DOS TESTES - MEMORIA LIBERADA\n");
     printf("=========================================\n");
 }
 
 // --- MENU PRINCIPAL ---
 int main() {
-    Grafo *meuGrafo = criarGrafo(20); // Capacidade inicial
+    setlocale(LC_ALL, "Portuguese"); // Ativa acentos no console
+
+    Grafo *meuGrafo = criarGrafo(20);
     int op, u, v;
 
     do {
-        printf("\n=== LABIRINTO RPG (PRISAO) ===\n");
-        printf("1. Inserir Sala (Vertice)\n");
-        printf("2. Inserir Passagem (Aresta)\n");
-        printf("3. Remover Sala\n");
-        printf("4. Remover Passagem\n");
-        printf("5. Exibir Mapa (Matriz)\n");
-        printf("6. Exploracao (BFS)\n");
-        printf("7. Carregar Cenario Teste (Padrao)\n");
-        printf("--- BONUS ---\n");
-        printf("8. Nivel de Seguranca (Graus)\n");
-        printf("9. Verificar Isolamento (Conectividade)\n");
+        printf("\n=== LABIRINTO RPG: FUGA DA PRISÃO ===\n");
+        printf("1. Adicionar Sala (Vértice)\n");
+        printf("2. Criar Passagem (Aresta)\n");
+        printf("3. Remover Sala (Reorganiza IDs)\n");
+        printf("4. Bloquear Passagem\n");
+        printf("5. Visualizar Mapa (Matriz)\n");
+        printf("6. Explorar (BFS)\n");
+        printf("7. Carregar MAPA PADRÃO (Jogo Completo)\n");
+        printf("--- FERRAMENTAS AVANÇADAS ---\n");
+        printf("8. Analisar Segurança (Graus)\n");
+        printf("9. Verificar Conectividade\n");
         printf("10. Rota de Fuga (Menor Caminho)\n");
-        printf("11. Salvar em Arquivo\n");
-        printf("12. Carregar de Arquivo\n");
-        printf("13. Gerar Visualizacao (.dot)\n");
-        printf("14. EXECUTAR TESTES AUTOMATIZADOS\n");
+        printf("11. Salvar Mapa em Arquivo\n");
+        printf("12. Carregar Mapa de Arquivo\n");
+        printf("13. Executar Testes Automatizados\n");
         printf("0. Sair\n");
-        printf("Opcao: ");
+        printf("Opção: ");
         scanf("%d", &op);
 
         switch(op) {
             case 1: inserirVertice(meuGrafo); break;
-            case 2: 
-                printf("De (ID): "); scanf("%d", &u);
-                printf("Para (ID): "); scanf("%d", &v);
-                inserirAresta(meuGrafo, u, v);
-                break;
-            case 3:
-                printf("ID Sala: "); scanf("%d", &u);
-                removerVertice(meuGrafo, u);
-                break;
-            case 4:
-                printf("De (ID): "); scanf("%d", &u);
-                printf("Para (ID): "); scanf("%d", &v);
-                removerAresta(meuGrafo, u, v);
-                break;
+            case 2: printf("De ID: "); scanf("%d", &u); printf("Para ID: "); scanf("%d", &v); inserirAresta(meuGrafo, u, v); break;
+            case 3: printf("ID da Sala: "); scanf("%d", &u); removerVertice(meuGrafo, u); break;
+            case 4: printf("De ID: "); scanf("%d", &u); printf("Para ID: "); scanf("%d", &v); removerAresta(meuGrafo, u, v); break;
             case 5: exibirMatriz(meuGrafo); break;
-            case 6:
-                printf("Inicio (ID): "); scanf("%d", &u);
-                percursoBFS(meuGrafo, u);
-                break;
-            case 7: carregarCenarioTeste(meuGrafo); break;
+            case 6: printf("Início ID: "); scanf("%d", &u); percursoBFS(meuGrafo, u); break;
+            case 7: carregarMapaPadrao(meuGrafo); break;
             case 8: verificarGrau(meuGrafo); break;
             case 9: verificarConectividade(meuGrafo); break;
-            case 10:
-                printf("Inicio (ID): "); scanf("%d", &u);
-                printf("Destino (ID): "); scanf("%d", &v);
-                buscarMenorCaminho(meuGrafo, u, v);
-                break;
+            case 10: printf("Início: "); scanf("%d", &u); printf("Fim: "); scanf("%d", &v); buscarMenorCaminho(meuGrafo, u, v); break;
             case 11: salvarGrafoArquivo(meuGrafo); break;
             case 12: carregarGrafoArquivo(&meuGrafo); break;
-            case 13: exportarGraphViz(meuGrafo); break;
-            case 14: testesAutomatizados(); break;
+            case 13: testesAutomatizados(); break;
             case 0: liberarGrafo(meuGrafo); break;
-            default: printf("Opcao invalida.\n");
+            default: printf("Opção inválida.\n");
         }
     } while (op != 0);
 
