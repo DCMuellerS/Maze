@@ -69,33 +69,27 @@ Nodo* buscarNodo(Grafo *g, int id) {
 // Adiciona um nodo ao grafo
 void adicionarNodo(Grafo *g, int id) {
     char nomeSala[MAX_BUFFER], descriçãoSala[MAX_BUFFER];
-    bool editando = 1, chave, tranca;
+    bool editando = 1, chave = 0, tranca = 0;
     // verificar se já existe o nodo
     if (buscarNodo(g, id) != NULL) {
         printf("Nodo %d ja existe!\n", id);
         return;
     }
     while (editando == 1) {
-        printf("Insira o nome da Sala:");
-        scanf("%s", nomeSala);
-        printf("Insira a descrição da Sala:");
-        scanf("%s", nomeSala);
-        printf("Sala possui chave?");
-        scanf("%s", nomeSala);
-        printf("Sala trancada?");
-        scanf("%s", nomeSala);
+        printf("Insira o nome da Sala:");scanf("%s", nomeSala);
+        printf("Insira a descrição da Sala:");scanf("%s", descriçãoSala);
+        printf("Sala possui chave?\n(1 - Sim; 2 - Não)\n");scanf("%s", chave);
+        printf("Sala trancada?\n(1 - Sim; 2 - Não)\n");scanf("%s", tranca);
         editando = 0;
     }
-    printf("Insira o nome da Sala:");
-    scanf("%s", nomeSala);
-    printf("Insira a descrição da Sala:");
-    scanf("%s", nomeSala);
-    printf("Sala possui chave?");
-    printf("Sala trancada?");
 
     //alocar todos os campos para o novo
     Nodo *novo = (Nodo*)malloc(sizeof(Nodo));
     novo->id = id;
+    strcpy(novo->nome, nomeSala);
+    strcpy(novo->descricao, descriçãoSala);
+    novo->temItem = chave;
+    novo->precisaItem = tranca;
     novo->adjacentes = NULL;
     novo->prox = g->inicio;
     g->inicio = novo;
@@ -172,14 +166,17 @@ void removerNodo(Grafo *g, int id) {
 // Adiciona uma aresta entre dois nodos
 void adicionarAresta(Grafo *g, int origem, int destino) {
     Nodo *nodoOrigem = buscarNodo(g, origem);
+    if (nodoOrigem == NULL ) {
+        printf("Nodo de origem não existe!\n");
+        return;
+    }
     Nodo *nodoDestino = buscarNodo(g, destino);
-
-    if (nodoOrigem == NULL || nodoDestino == NULL) {
-        printf("Um ou ambos os nodos nao existem!\n");
+    if (nodoDestino == NULL) {
+        printf("Nodo de destino não existe!\n");
         return;
     }
 
-    // Verifica se a aresta já existe
+    // Verifica se a aresta já existe percorrendo a lista encadeada
     Adjacente *adj = nodoOrigem->adjacentes;
     while (adj != NULL) {
         if (adj->destino == destino) {
@@ -207,17 +204,20 @@ void adicionarAresta(Grafo *g, int origem, int destino) {
 // Remove uma aresta entre dois nodos
 void removerAresta(Grafo *g, int origem, int destino) {
     Nodo *nodoOrigem = buscarNodo(g, origem);
+    if (nodoOrigem == NULL) {
+        printf("Nodo de Origem não existe!\n");
+        return;
+    }
     Nodo *nodoDestino = buscarNodo(g, destino);
-
-    if (nodoOrigem == NULL || nodoDestino == NULL) {
-        printf("Um ou ambos os nodos nao existem!\n");
+    if ( nodoDestino == NULL) {
+        printf("Nodo de destino não existe!\n");
         return;
     }
 
     removerDaListaAdj(nodoOrigem, destino);
     removerDaListaAdj(nodoDestino, origem);
 
-    printf("Aresta entre %d e %d removida com sucesso!\n", origem, destino);
+    printf("Passagem entre %d e %d removida com sucesso!\n", origem, destino);
 }
 
 // Imprime o grafo
@@ -265,7 +265,33 @@ void liberarGrafo(Grafo *g) {
     g->inicio = NULL;
     g->numNodos = 0;
 }
+ void percorrerGrafo(Grafo *g, int ini) {
+    int existe =  0 , quantidade = 0;
+    if (g->inicio == NULL) {
+        printf("Grafo vazio!\n");
+        return;
+    }
+    Nodo *nodo = g->inicio;
+    while (nodo->prox != NULL) {
+            if (nodo->id == ini) {
+                existe = 1;
+                quantidade++;
+            }
+            else if ((nodo->prox == NULL) && (existe == 0)){
+                printf("Nodo não existe para iniciar o percurso!\n");
+                return;
+            }else {
+                quantidade++;
+            }
+            nodo = nodo->prox;
+        }
+    printf("\n=== DFS ===\n");
+    printf("%d", quantidade);
 
+
+
+    printf("=============\n\n");
+}
 // --- MENU PRINCIPAL ---
 int main() {
     setlocale(LC_ALL, "Portuguese"); // Ativa acentos no console
@@ -301,14 +327,14 @@ int main() {
         }
         if (op0 == 2) {
             do {
-                printf("1. Adicionar Sala (Vértice)\n");
-                printf("2. Criar Passagem (Aresta)\n");
-                printf("3. Remover Sala (Reorganiza IDs)\n");
-                printf("4. Bloquear Passagem(Remover Aresta)\n");
+                printf("1. Adicionar Sala (Cria Nodo)\n");
+                printf("2. Criar Passagem (Cria Aresta)\n");
+                printf("3. Remover Sala (Remove Nodo)\n");
+                printf("4. Remover Passagem(Remover Aresta)\n");
                 printf("5. Visualizar Mapa (Matriz)\n");
+
                 printf("6. Explorar (BFS)\n");
                 printf("7. Testar Mapa Padrão (BFS)\n");
-
                 printf("--- FERRAMENTAS AVANÇADAS ---\n");
                 printf("8. Analisar Segurança (Graus)\n");
                 printf("9. Verificar Conectividade\n");
@@ -326,23 +352,22 @@ int main() {
                         scanf("%d", &ID);
                         adicionarNodo(&mapa, ID); break;
                     case 2:
-                        printf("De ID: ");scanf("%d", &u);
-                        printf("Para ID: ");scanf("%d", &v);
-                        inserirAresta(meuGrafo, u, v);break;
+                        printf("ID de origem: ");scanf("%d", &u);
+                        printf("ID de destino: ");scanf("%d", &v);
+                        adicionarAresta(&mapa, u, v);break;
                     case 3:
-                        printf("ID da Sala: ");
-                        scanf("%d", &u);
-                        removerVertice(meuGrafo, u);break;
+                        printf("ID da Sala: ");scanf("%d", &u);
+                        removerNodo(&mapa, u);break;
                     case 4:
-                        printf("De ID: ");scanf("%d", &u);
-                        printf("Para ID: ");scanf("%d", &v);
-                        removerAresta(meuGrafo, u, v);break;
+                        printf("ID de origem: ");scanf("%d", &u);
+                        printf("ID de destino: ");scanf("%d", &v);
+                        removerAresta(&mapa, u, v);break;
                     case 5:
-                        exibirMatriz(meuGrafo);break;
+                        imprimirGrafo(&mapa);break;
                     case 6:
-                        printf("Início ID: ");scanf("%d", &u);
-                        percursoBFS(meuGrafo, u);break;
-                    case 7:
+                        printf("Começar de ID: ");scanf("%d", &u);
+                        percorrerGrafo(&mapa, u);break;
+                    /*case 7:
                         carregarMapaPadrao(meuGrafo);break;
                     case 8:
                         verificarGrau(meuGrafo);break;
@@ -357,9 +382,9 @@ int main() {
                     case 12:
                         carregarGrafoArquivo(&meuGrafo); break;
                     case 13:
-                        testesAutomatizados(); break;
+                        testesAutomatizados(); break;*/
                     case 0:
-                        liberarGrafo(meuGrafo); break;
+                        op0 = 3; break;
                     default:
                         printf("Opção inválida.\n");
                 }
@@ -369,6 +394,6 @@ int main() {
         }
     } while (op1 != 0);
     printf("Saindo");
-    liberarGrafo(meuGrafo);
+    liberarGrafo(&mapa);
     return 0;
 }
