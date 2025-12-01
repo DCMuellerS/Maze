@@ -18,7 +18,7 @@
 #include <locale.h> // Necessário para acentuação (PT-BR)
 
 // Definição de constantes
-#define MAX_BUFFER 250 // tamanho máximo das strings
+#define MAX_BUFFER 150 // tamanho máximo das strings
 #define ARQUIVO_DADOS "mapa_prisao.txt"
 
 // --- ESTRUTURAS DE DADOS ---
@@ -65,7 +65,20 @@ Nodo* buscarNodo(Grafo *g, int id) {
     }
     return NULL;
 }
-
+void adNodoAut(Grafo *g, int id, char *Nome, char *Descricao, int Chave, int Tranca) {
+    //alocar todos os campos para o novo
+    Nodo *novo = (Nodo*)malloc(sizeof(Nodo));
+    novo->id = id;
+    strcpy(novo->nome, Nome);
+    strcpy(novo->descricao, Descricao);
+    novo->temItem = Chave;
+    novo->precisaItem = Tranca;
+    novo->adjacentes = NULL;
+    novo->prox = g->inicio;
+    g->inicio = novo;
+    g->numNodos++;
+    printf("Nodo %d adicionado com sucesso!\n", id);
+}
 // Adiciona um nodo ao grafo
 void adicionarNodo(Grafo *g, int id) {
     char nomeSala[MAX_BUFFER], descriçãoSala[MAX_BUFFER];
@@ -78,8 +91,8 @@ void adicionarNodo(Grafo *g, int id) {
     while (editando == 1) {
         printf("Insira o nome da Sala:");scanf("%s", nomeSala);
         printf("Insira a descrição da Sala:");scanf("%s", descriçãoSala);
-        printf("Sala possui chave?\n(1 - Sim; 2 - Não)\n");scanf("%s", chave);
-        printf("Sala trancada?\n(1 - Sim; 2 - Não)\n");scanf("%s", tranca);
+        printf("Sala possui chave?\n(1 - Sim; 2 - Não)\n");scanf("%d", chave);
+        printf("Sala trancada?\n(1 - Sim; 2 - Não)\n");scanf("%d", tranca);
         editando = 0;
     }
 
@@ -266,7 +279,7 @@ void liberarGrafo(Grafo *g) {
     g->numNodos = 0;
 }
  void percorrerGrafo(Grafo *g, int ini) {
-    int existe =  0 , quantidade = 0;
+    int existe =  0 , quantidade = 1;
     if (g->inicio == NULL) {
         printf("Grafo vazio!\n");
         return;
@@ -285,13 +298,58 @@ void liberarGrafo(Grafo *g) {
             }
             nodo = nodo->prox;
         }
+    int lista[quantidade], ;
+    while ()
     printf("\n=== DFS ===\n");
     printf("%d", quantidade);
-
-
-
     printf("=============\n\n");
 }
+void carregarMapaPadrao(Grafo *g) {
+    // Definindo as salas do jogo (Tema Prisão)
+    liberarGrafo(g);
+    adNodoAut(g, 0, "Cela 402", "Sua cela escura.", 0, 0);
+    adNodoAut(g, 1, "Corredor", "Sua cela escura.", 0, 0);
+    adNodoAut(g, 2, "Enfermaria", "Sua cela escura.", 0, 0);
+    adNodoAut(g, 3, "Pátio Central", "Sua cela escura.", 0, 0);
+    adNodoAut(g, 4, "Escritório", "Sua cela escura.", 1, 0);
+    adNodoAut(g, 5, "Refeitório", "Sua cela escura.", 0, 0);
+    adNodoAut(g, 6, "Refeitório", "Requer chave.", 0, 1);
+    adNodoAut(g, 7, "SAÍDA", "Liberdade!", 0, 0);
+
+    // Criando o labirinto (Conexões)
+    adicionarAresta(g, 0, 1);
+    adicionarAresta(g, 1, 2);
+    adicionarAresta(g, 1, 3);
+    adicionarAresta(g, 3, 5);
+    adicionarAresta(g, 3, 4);
+    adicionarAresta(g, 3, 6);
+    adicionarAresta(g, 6, 7);
+
+    printf("\nMAPA PADRÃO 'FUGA DA PRISÃO' CARREGADO!\n");
+}
+void verificarGrau(Grafo *g, int u) {
+    int adjacentes = 0;
+    if (g->inicio == NULL) {
+        printf("Grafo vazio!\n");
+        return;
+    }
+
+    Nodo *nodoDestino = buscarNodo(g, u);
+    if (nodoDestino == NULL) {
+        printf("não há conexões, Nodo não existe!\n");
+        return;
+    }
+
+
+    Adjacente *adj = nodoDestino->adjacentes;
+    while (adj != NULL) {
+        adj = adj->prox;
+        adjacentes++;
+    }
+    printf("Nodos adjacentes a %d = %d nodo(s)", u, adjacentes);
+
+}
+
 // --- MENU PRINCIPAL ---
 int main() {
     setlocale(LC_ALL, "Portuguese"); // Ativa acentos no console
@@ -331,10 +389,10 @@ int main() {
                 printf("2. Criar Passagem (Cria Aresta)\n");
                 printf("3. Remover Sala (Remove Nodo)\n");
                 printf("4. Remover Passagem(Remover Aresta)\n");
-                printf("5. Visualizar Mapa (Matriz)\n");
+                printf("5. Visualizar Mapa (DFS)\n");
 
-                printf("6. Explorar (BFS)\n");
-                printf("7. Testar Mapa Padrão (BFS)\n");
+                printf("6. Explorar (DFS)\n");
+                printf("7. Testar Mapa Padrão (Inserção de Nodos e Arestas)\n");
                 printf("--- FERRAMENTAS AVANÇADAS ---\n");
                 printf("8. Analisar Segurança (Graus)\n");
                 printf("9. Verificar Conectividade\n");
@@ -367,13 +425,14 @@ int main() {
                     case 6:
                         printf("Começar de ID: ");scanf("%d", &u);
                         percorrerGrafo(&mapa, u);break;
-                    /*case 7:
-                        carregarMapaPadrao(meuGrafo);break;
+                    case 7:
+                        carregarMapaPadrao(&mapa);break;
                     case 8:
-                        verificarGrau(meuGrafo);break;
+                        printf("Verificar grau de nodo ID: ");scanf("%d", &u);
+                        verificarGrau(&mapa, u);break;
                     case 9:
                         verificarConectividade(meuGrafo); break;
-                    case 10:
+                    /*case 10:
                         printf("Início: "); scanf("%d", &u);
                         printf("Fim: "); scanf("%d", &v);
                         buscarMenorCaminho(meuGrafo, u, v); break;
