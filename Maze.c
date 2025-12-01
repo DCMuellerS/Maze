@@ -55,6 +55,12 @@ void inicializarGrafo(Grafo *g) {
     g->numNodos = 0;
 }
 
+// Função auxiliar para limpar o buffer
+void limparBuffer() {
+    int c;
+    while ((c = getchar()) != '\n' && c != EOF);
+}
+
 // Busca no grafo o endereço de um nodo especifico
 Nodo* buscarNodo(Grafo *g, int id) {
     Nodo *atual = g->inicio;
@@ -89,10 +95,14 @@ void adicionarNodo(Grafo *g, int id) {
         return;
     }
     while (editando == 1) {
-        printf("Insira o nome da Sala:");scanf("%s", nomeSala);
-        printf("Insira a descrição da Sala:");scanf("%s", descriçãoSala);
-        printf("Sala possui chave?\n(1 - Sim; 2 - Não)\n");scanf("%d", chave);
-        printf("Sala trancada?\n(1 - Sim; 2 - Não)\n");scanf("%d", tranca);
+        printf("Insira o nome da Sala:\n");scanf("%s", &nomeSala);
+        limparBuffer();
+        printf("Insira a descrição da Sala:\n");scanf("%s", &descriçãoSala);
+        limparBuffer();
+        printf("Sala possui chave?\n(1 - Sim; 0 - Não)\n"); scanf("%d", &chave);
+        limparBuffer();
+        printf("Sala trancada?\n(1 - Sim; 0 - Não)\n"); scanf("%d", &tranca);
+        limparBuffer();
         editando = 0;
     }
 
@@ -285,8 +295,10 @@ void liberarGrafo(Grafo *g) {
         return;
     }
     Nodo *nodo = g->inicio;
+    Nodo *nodoInicial;
     while (nodo->prox != NULL) {
             if (nodo->id == ini) {
+                nodoInicial = nodo;
                 existe = 1;
                 quantidade++;
             }
@@ -298,10 +310,61 @@ void liberarGrafo(Grafo *g) {
             }
             nodo = nodo->prox;
         }
-    int lista[quantidade], ;
-    while ()
+    int fila[quantidade];
+    int visitados[quantidade];
+    int topo = 0, i, j;
+
+    for (i = 0; i < quantidade; i++) {
+        visitados[i] = 0;
+    }
+
+    fila[topo] = ini;
+    topo++;
+
     printf("\n=== DFS ===\n");
-    printf("%d", quantidade);
+
+    while (topo > 0) {
+        topo--;
+        int atual = fila[topo];
+
+        if (visitados[atual]) continue;
+
+        visitados[atual] = 1;
+        printf("Visitando nodo %d\n", atual);
+
+        Nodo *nodoAtual = buscarNodo(g, atual);
+        Adjacente *adj = nodoAtual->adjacentes;
+
+        // Lista auxiliar para ordenar adjacentes
+        int listaAux[quantidade];
+        int aux = 0;
+
+        while (adj != NULL) {
+            if (!visitados[adj->destino]) {
+                listaAux[aux] = adj->destino;
+                aux++;
+            }
+            adj = adj->prox;
+        }
+
+        // Ordena a lista auxiliar
+        for (i = 0; i < aux - 1; i++) {
+            for (j = 0; j < aux - i - 1; j++) {
+                if (listaAux[j] > listaAux[j + 1]) {
+                    int temp = listaAux[j];
+                    listaAux[j] = listaAux[j + 1];
+                    listaAux[j + 1] = temp;
+                }
+            }
+        }
+
+        // Adiciona na pilha em ordem reversa (para processar na ordem crescente)
+        for (i = aux - 1; i >= 0; i--) {
+            fila[topo] = listaAux[i];
+            topo++;
+        }
+    }
+
     printf("=============\n\n");
 }
 void carregarMapaPadrao(Grafo *g) {
@@ -349,7 +412,219 @@ void verificarGrau(Grafo *g, int u) {
     printf("Nodos adjacentes a %d = %d nodo(s)", u, adjacentes);
 
 }
+// BFS modificado para armazenar o caminho (vetor pai)
+void buscarMenorCaminho(Grafo *g, int inicio, int fim) {
+    if (g->inicio == NULL) {
+        printf("Grafo vazio!\n");
+        return;
+    }
 
+    // Verifica se os nodos existem
+    Nodo *nodoInicio = buscarNodo(g, inicio);
+    Nodo *nodoFim = buscarNodo(g, fim);
+    if (nodoInicio == NULL || nodoFim == NULL) {
+        printf("Nodo de início ou fim não existe!\n");
+        return;
+    }
+
+    // Descobre o maior ID para dimensionar arrays
+    int maxId = 0;
+    Nodo *temp = g->inicio;
+    while (temp != NULL) {
+        if (temp->id > maxId) maxId = temp->id;
+        temp = temp->prox;
+    }
+    maxId++; // +1 para usar IDs como índices
+
+    // Aloca estruturas auxiliares
+    int *pai = (int*) malloc(maxId * sizeof(int));
+    bool *visitado = (bool*) calloc(maxId, sizeof(bool));
+    int *fila = (int*) malloc(g->numNodos * sizeof(int));
+    int iniF = 0, fimFila = 0;
+
+    // Inicializa vetor pai
+    for(int i = 0; i < maxId; i++) pai[i] = -1;
+
+    // Inicia BFS
+    visitado[inicio] = true;
+    fila[fimFila++] = inicio;
+    bool achou = false;
+
+    while (iniF < fimFila) {
+        int u = fila[iniF++];
+
+        if (u == fim) {
+            achou = true;
+            break;
+        }
+
+        // Percorre adjacentes do nodo atual
+        Nodo *nodoAtual = buscarNodo(g, u);
+        Adjacente *adj = nodoAtual->adjacentes;
+
+        while (adj != NULL) {
+            int v = adj->destino;
+            if (!visitado[v]) {
+                visitado[v] = true;
+                pai[v] = u;
+                fila[fimFila++] = v;
+            }
+            adj = adj->prox;
+        }
+    }
+
+    if (achou) {
+        printf("\nRota de Fuga Sugerida: ");
+        int caminho[100], tam = 0, atual = fim;
+
+        // Reconstrói o caminho de trás para frente usando o vetor pai
+        while (atual != -1) {
+            caminho[tam++] = atual;
+            atual = pai[atual];
+        }
+
+        // Imprime o caminho com os nomes das salas
+        for (int i = tam - 1; i >= 0; i--) {
+            Nodo *n = buscarNodo(g, caminho[i]);
+            printf("%s", n->nome);
+            if (i > 0) printf(" -> ");
+        }
+        printf("\nPassos totais: %d\n", tam - 1);
+    } else {
+        printf("\nNão há caminho possível entre estas salas.\n");
+    }
+
+    free(pai);
+    free(visitado);
+    free(fila);
+}
+void salvarGrafoArquivo(Grafo *g) {
+    if (g->inicio == NULL) {
+        printf("Grafo vazio!\n");
+        return;
+    }
+
+    FILE *f = fopen(ARQUIVO_DADOS, "w");
+    if(!f) { printf("Erro ao abrir arquivo.\n"); return; }
+
+    fprintf(f, "%d\n", g->numNodos);
+
+    // Salva atributos dos nodos
+    Nodo *nodo = g->inicio;
+    while (nodo != NULL) {
+        fprintf(f, "%d;%s;%s;%d;%d\n", nodo->id, nodo->nome, nodo->descricao,
+                nodo->temItem, nodo->precisaItem);
+        nodo = nodo->prox;
+    }
+
+    // Salva arestas (evita duplicação percorrendo apenas IDs maiores)
+    nodo = g->inicio;
+    while (nodo != NULL) {
+        Adjacente *adj = nodo->adjacentes;
+        while (adj != NULL) {
+            if (nodo->id < adj->destino) { // Evita aresta duplicada
+                fprintf(f, "%d %d\n", nodo->id, adj->destino);
+            }
+            adj = adj->prox;
+        }
+        nodo = nodo->prox;
+    }
+
+    fclose(f);
+    printf("Dados salvos em '%s'.\n", ARQUIVO_DADOS);
+}
+void carregarGrafoArquivo(Grafo *g) {
+    FILE *f = fopen(ARQUIVO_DADOS, "r");
+    if(!f) { printf("Arquivo não encontrado. Salve um mapa primeiro.\n"); return; }
+
+    liberarGrafo(g);
+
+    int qtd;
+    if (fscanf(f, "%d\n", &qtd) != 1) {
+        fclose(f);
+        printf("Arquivo corrompido.\n");
+        return;
+    }
+
+    // Carrega nodos
+    for(int i = 0; i < qtd; i++) {
+        int id, temItem, precisaItem;
+        char nome[MAX_BUFFER], desc[MAX_BUFFER];
+        fscanf(f, "%d;%[^;];%[^;];%d;%d\n", &id, nome, desc, &temItem, &precisaItem);
+        adNodoAut(g, id, nome, desc, temItem, precisaItem);
+    }
+
+    // Carrega arestas
+    int u, v;
+    while(fscanf(f, "%d %d\n", &u, &v) != EOF) {
+        adicionarAresta(g, u, v);
+    }
+
+    fclose(f);
+    printf("Mapa carregado com sucesso.\n");
+}
+void testesAutomatizados() {
+    printf("\n=========================================\n");
+    printf("   INICIANDO TESTES AUTOMATIZADOS (COMPLETO)\n");
+    printf("=========================================\n");
+
+    Grafo t;
+    inicializarGrafo(&t);
+
+    // TESTE 1: Inserção
+    printf("[TESTE 1] Inserção de Nodos... ");
+    adNodoAut(&t, 0, "Sala A", "Teste A", 0, 0);
+    adNodoAut(&t, 1, "Sala B", "Teste B", 0, 0);
+    adNodoAut(&t, 2, "Sala C", "Teste C", 0, 0);
+
+    if (t.numNodos == 3) printf("PASSOU\n");
+    else printf("FALHOU (Qtd: %d)\n", t.numNodos);
+
+    // TESTE 2: Arestas e Grau
+    printf("[TESTE 2] Conexão e Grau... ");
+    adicionarAresta(&t, 0, 1);
+    adicionarAresta(&t, 1, 2);
+
+    Nodo *nodoB = buscarNodo(&t, 1);
+    int grauB = 0;
+    Adjacente *adj = nodoB->adjacentes;
+    while (adj != NULL) {
+        grauB++;
+        adj = adj->prox;
+    }
+
+    if (grauB == 2) printf("PASSOU\n");
+    else printf("FALHOU (Grau B: %d)\n", grauB);
+
+    // TESTE 3: Caminho Lógico
+    printf("[TESTE 3] Caminho Lógico (A->C via B)... ");
+    Nodo *nodoA = buscarNodo(&t, 0);
+    bool temCaminhoAB = false;
+    adj = nodoA->adjacentes;
+    while (adj != NULL) {
+        if (adj->destino == 1) temCaminhoAB = true;
+        adj = adj->prox;
+    }
+
+    bool temCaminhoBC = false;
+    adj = nodoB->adjacentes;
+    while (adj != NULL) {
+        if (adj->destino == 2) temCaminhoBC = true;
+        adj = adj->prox;
+    }
+
+    if (temCaminhoAB && temCaminhoBC) printf("PASSOU\n");
+    else printf("FALHOU\n");
+
+    // TESTE 4: Remoção
+    printf("[TESTE 4] Remoção de Nodo... ");
+    removerNodo(&t, 1);
+    if (t.numNodos == 2) printf("PASSOU\n");
+    else printf("FALHOU (Qtd após remoção: %d)\n", t.numNodos);
+
+    liberarGrafo(&t);
+    printf("=========================================\n");
+}
 // --- MENU PRINCIPAL ---
 int main() {
     setlocale(LC_ALL, "Portuguese"); // Ativa acentos no console
@@ -364,8 +639,10 @@ int main() {
         printf("0. Sair\n");
         printf("->");
         scanf("%d", &op0);
+
         if (op0 == 1) {
             do {
+                limparBuffer();
                 printf("1. Fuga da Prisão\n");
                 printf("2. Carregar mapa externo\n");
                 printf("0. Voltar\n");
@@ -385,6 +662,7 @@ int main() {
         }
         if (op0 == 2) {
             do {
+                limparBuffer();
                 printf("1. Adicionar Sala (Cria Nodo)\n");
                 printf("2. Criar Passagem (Cria Aresta)\n");
                 printf("3. Remover Sala (Remove Nodo)\n");
@@ -408,40 +686,50 @@ int main() {
                     case 1:
                         printf("Digite o ID da sala: ");
                         scanf("%d", &ID);
+                        limparBuffer();
                         adicionarNodo(&mapa, ID); break;
                     case 2:
                         printf("ID de origem: ");scanf("%d", &u);
+                        limparBuffer();
                         printf("ID de destino: ");scanf("%d", &v);
+                        limparBuffer();
                         adicionarAresta(&mapa, u, v);break;
                     case 3:
                         printf("ID da Sala: ");scanf("%d", &u);
+                        limparBuffer();
                         removerNodo(&mapa, u);break;
                     case 4:
                         printf("ID de origem: ");scanf("%d", &u);
+                        limparBuffer();
                         printf("ID de destino: ");scanf("%d", &v);
+                        limparBuffer();
                         removerAresta(&mapa, u, v);break;
                     case 5:
                         imprimirGrafo(&mapa);break;
                     case 6:
                         printf("Começar de ID: ");scanf("%d", &u);
+                        limparBuffer();
                         percorrerGrafo(&mapa, u);break;
                     case 7:
                         carregarMapaPadrao(&mapa);break;
                     case 8:
                         printf("Verificar grau de nodo ID: ");scanf("%d", &u);
+                        limparBuffer();
                         verificarGrau(&mapa, u);break;
                     case 9:
-                        verificarConectividade(meuGrafo); break;
-                    /*case 10:
+                        percorrerGrafo(&mapa, 0); break;
+                    case 10:
                         printf("Início: "); scanf("%d", &u);
+                        limparBuffer();
                         printf("Fim: "); scanf("%d", &v);
-                        buscarMenorCaminho(meuGrafo, u, v); break;
+                        limparBuffer();
+                        buscarMenorCaminho(&mapa, u, v); break;
                     case 11:
-                        salvarGrafoArquivo(meuGrafo); break;
+                        salvarGrafoArquivo(&mapa); break;
                     case 12:
-                        carregarGrafoArquivo(&meuGrafo); break;
+                        carregarGrafoArquivo(&mapa); break;
                     case 13:
-                        testesAutomatizados(); break;*/
+                        testesAutomatizados(); break;
                     case 0:
                         op0 = 3; break;
                     default:
