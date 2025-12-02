@@ -411,12 +411,12 @@ void carregarCenarioSurvival(Grafo *g) {
     setPista(g, 1, "PISTA: O que pulsa no peito e foge quando o corpo esfria? O contrário da podridão deste lugar.");
 
     configurarSala(g, 2, "Sala de Máquinas", "Fios expostos bloqueiam o caminho.", 0, 0, 0);
-    setArmadilha(g, 2, "No Nordeste sou regra, em SP sou exceção. Tenho três dígitos e causo explosão. Quem sou?", "220");
+    setArmadilha(g, 2, "No Nordeste sou regra, em SP sou exceção. Tenho três dígitos e causo explosão. Quem sou (Dica: o que está atravancando o teu caminho)?", "220");
 
     configurarSala(g, 3, "Almoxarifado", "Prateleiras empoeiradas.", 1, 0, 0); // CHAVE
 
     configurarSala(g, 4, "Esgoto", "Cheiro podre. Painel requer senha.", 0, 0, 0);
-    setArmadilha(g, 4, "Digite a Senha:", "VIDA");
+    setArmadilha(g, 4, "Digite a Senha (Dica: O fio que as Moiras cortam):", "VIDA");
 
     configurarSala(g, 5, "Sala Controle", "Visão das câmeras.", 0, 0, 0);
 
