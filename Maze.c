@@ -113,7 +113,7 @@ void adNodoAut(Grafo *g, int id, char *Nome, char *Descricao, int Chave, int Tra
 }
 // Adiciona um nodo ao grafo
 void adicionarNodo(Grafo *g, int id) {
-    char nomeSala[MAX_BUFFER], descriçãoSala[MAX_BUFFER];
+    char nomeSala[MAX_BUFFER], descSala[MAX_BUFFER];
     bool editando = 1, chave = 0, tranca = 0;
     // verificar se já existe o nodo
     if (buscarNodo(g, id) != NULL) {
@@ -123,7 +123,7 @@ void adicionarNodo(Grafo *g, int id) {
     while (editando == 1) {
         printf("Insira o nome da Sala:\n");scanf("%s", &nomeSala);
         limparBuffer();
-        printf("Insira a descrição da Sala:\n");scanf("%s", &descriçãoSala);
+        printf("Insira a descrição da Sala:\n");scanf("%s", &descSala);
         limparBuffer();
         printf("Sala possui chave?\n(1 - Sim; 0 - Não)\n"); scanf("%d", &chave);
         limparBuffer();
@@ -136,7 +136,7 @@ void adicionarNodo(Grafo *g, int id) {
     Nodo *novo = (Nodo*)malloc(sizeof(Nodo));
     novo->id = id;
     strcpy(novo->nome, nomeSala);
-    strcpy(novo->descricao, descriçãoSala);
+    strcpy(novo->descricao, descSala);
     novo->temItem = chave;
     novo->precisaItem = tranca;
     novo->adjacentes = NULL;
