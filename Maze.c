@@ -396,14 +396,16 @@ void liberarGrafo(Grafo *g) {
 void carregarMapaPadrao(Grafo *g) {
     // Definindo as salas do jogo (Tema Prisão)
     liberarGrafo(g);
-    adNodoAut(g, 0, "Cela 402", "Sua cela escura.", 0, 0);
-    adNodoAut(g, 1, "Corredor", "Sua cela escura.", 0, 0);
-    adNodoAut(g, 2, "Enfermaria", "Sua cela escura.", 0, 0);
-    adNodoAut(g, 3, "Pátio Central", "Sua cela escura.", 0, 0);
-    adNodoAut(g, 4, "Escritório", "Sua cela escura.", 1, 0);
-    adNodoAut(g, 5, "Refeitório", "Sua cela escura.", 0, 0);
-    adNodoAut(g, 6, "Refeitório", "Requer chave.", 0, 1);
-    adNodoAut(g, 7, "SAÍDA", "Liberdade!", 0, 0);
+
+    adNodoAut(g, 0, "Cela 402", "Sua cela escura. Uma cama velha e paredes frias.", 0, 0);
+    adNodoAut(g, 1, "Corredor", "Corredor mal iluminado. Cheiro de mofo no ar.", 0, 0);
+    adNodoAut(g, 2, "Enfermaria", "Macas vazias e remedios espalhados pelo chao.", 0, 0);
+    adNodoAut(g, 3, "Pátio Central", "Area aberta cercada por muros altos. Silencio total.", 0, 0);
+    adNodoAut(g, 4, "Escritório", "Mesa bagunçada. Voce encontra uma CHAVE no gaveta!", 1, 0);
+    adNodoAut(g, 5, "Refeitório", "Mesas vazias. Bandejas sujas ainda sobre elas.", 0, 0);
+    adNodoAut(g, 6, "Portão de Segurança", "Porta de aco reforçado. TRANCADA!", 0, 1);
+    adNodoAut(g, 7, "SAÍDA", "Liberdade! O ar fresco da rua te aguarda!", 0, 0);
+
 
     // Criando o labirinto (Conexões)
     adicionarAresta(g, 0, 1);
