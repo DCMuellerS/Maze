@@ -1,5 +1,31 @@
 /*
  * PROJETO FINAL: Labirinto RPG
+* 8. Rede de Locais (Salas, Ambientes, Labirinto)
+Tipo: Grafo não orientado
+Representação sugerida: Matriz de adjacência
+Vértices: Salas ou locais
+Arestas: Passagens diretas entre as salas
+Implementação:
+    • Inserir e remover salas e passagens.
+    • Fazer BFS para encontrar todos os locais acessíveis a partir de uma sala inicial.
+    • Verificar se há salas inacessíveis no mapa.
+2. Verificar Conectividade do Grafo
+Objetivo: Implementar uma função que detecta se o grafo é conexo (totalmente conectado).
+* Se, através de um percurso, e a partir de um ponto inicial informado pelo usuário, todos os vértices forem
+visitados, o grafo é conexo; caso contrário, há componentes desconexos.
+3. Busca de Caminho entre Dois Vértices
+Objetivo: Encontrar e mostrar o(s) caminho(s) possíveis entre dois vértices informados pelo usuário.
+* Pode ser feito com BFS (para menor número de arestas) ou DFS (qualquer caminho), dependendo da aplicação.
+Sempre relacionem ao tema escolhido para que a informação seja interessante ao usuário.
+* O programa exibe o caminho percorrido, como, por exemplo: Caminho de A até E: A -> C -> D -> E
+* 4. Verificação de Grau de Vértice
+* Objetivo: Calcular e exibir o grau de cada vértice.
+* No grafo orientado, isso envolve contar arestas de entrada e de saída.
+* No grafo não orientado, apenas o número total de conexões.
+5. Salvar e Carregar o Grafo de Arquivo
+Objetivo: Permitir gravar e recuperar o grafo de um arquivo texto.
+* Ao sair, o programa salva vértices e arestas em um arquivo.
+* Na inicialização, lê o arquivo e reconstrói o grafo.
  * -------------------------------------------------------------------------
  * INTEGRANTES: Enzo, Diogo
  * TEMA: Estrutura de Grafo não orientado no estilo livro jogo RPG
@@ -625,6 +651,123 @@ void testesAutomatizados() {
     liberarGrafo(&t);
     printf("=========================================\n");
 }
+void jogarSurvival(Grafo *g) {
+    if (g->inicio == NULL) {
+        printf("Carregue o cenário primeiro!\n");
+        return;
+    }
+
+    int posAtual = 0;
+    int temChave = 0;
+    char resposta[MAX_BUFFER];
+
+    // Verifica se o nodo inicial existe
+    Nodo *nodoInicial = buscarNodo(g, posAtual);
+    if (nodoInicial == NULL) {
+        printf("Erro: Sala inicial não encontrada!\n");
+        return;
+    }
+
+    printf("\n=== INÍCIO DO JOGO ===\n");
+
+    while (1) {
+        Nodo *atual = buscarNodo(g, posAtual);
+        if (atual == NULL) {
+            printf("Erro: Sala não encontrada!\n");
+            break;
+        }
+
+        printf("\n---------------------------------\n");
+        printf("LOCAL: [%d] %s\n", posAtual, atual->nome);
+        printf("DESC: %s\n", atual->descricao);
+
+        // 1. Item (Chave)
+        if (atual->temItem) {
+            printf("[ITEM] Você pegou a CHAVE!\n");
+            temChave = 1;
+            atual->temItem = 0; // Remove o item da sala
+        }
+
+        if (strcmp(atual->nome, "SAÍDA") == 0) {
+            printf("\n*********************************\n");
+            printf(" PARABÉNS! VOCÊ ESCAPOU COM VIDA!\n");
+            printf("*********************************\n");
+            printf("\nPressione ENTER para continuar...");
+            limparBuffer();
+            getchar();
+            break;
+        }
+
+        // 3. Movimento - Listar saídas disponíveis
+        printf("\nSaídas disponíveis:\n");
+        Adjacente *adj = atual->adjacentes;
+        bool temSaida = false;
+
+        while (adj != NULL) {
+            Nodo *destino = buscarNodo(g, adj->destino);
+            if (destino != NULL) {
+                printf(" -> [%d] %s", adj->destino, destino->nome);
+                if (destino->precisaItem) printf(" [TRANCADO]");
+                printf("\n");
+                temSaida = true;
+            }
+            adj = adj->prox;
+        }
+
+        if (!temSaida) {
+            printf("Não há saídas disponíveis. Você está preso!\n");
+            printf("\n*** GAME OVER ***\n");
+            printf("\nPressione ENTER para continuar...");
+            limparBuffer();
+            getchar();
+            break;
+        }
+
+        // 4. Receber escolha do jogador
+        printf("\nPara onde deseja ir? (ID da sala, -1 para Sair): ");
+        int dest;
+        scanf("%d", &dest);
+        limparBuffer();
+
+        if (dest == -1) {
+            printf("Você desistiu da fuga.\n");
+            break;
+        }
+
+        // 5. Validar movimento
+        bool caminhoValido = false;
+        adj = atual->adjacentes;
+
+        while (adj != NULL) {
+            if (adj->destino == dest) {
+                caminhoValido = true;
+                break;
+            }
+            adj = adj->prox;
+        }
+
+        if (!caminhoValido) {
+            printf("Caminho inválido! Não há conexão com essa sala.\n");
+            continue;
+        }
+
+        // 6. Verificar porta trancada
+        Nodo *salaDestino = buscarNodo(g, dest);
+        if (salaDestino == NULL) {
+            printf("Erro: Sala de destino não encontrada!\n");
+            continue;
+        }
+
+        if (salaDestino->precisaItem && !temChave) {
+            printf(">>> PORTA TRANCADA! Você precisa da chave para entrar.\n");
+        } else {
+            if (salaDestino->precisaItem) {
+                printf(">>> Você usou a chave para destrancar a porta!\n");
+            }
+            posAtual = dest;
+        }
+    }
+}
 // --- MENU PRINCIPAL ---
 int main() {
     setlocale(LC_ALL, "Portuguese"); // Ativa acentos no console
@@ -649,8 +792,12 @@ int main() {
                 scanf("%d", &op2);
                 switch (op2) {
                     case 1:
+                        carregarMapaPadrao(&mapa);
+                        jogarSurvival(&mapa);
                         break;
                     case 2:
+                        carregarGrafoArquivo(&mapa);
+                        jogarSurvival(&mapa);
                         break;
                     case 0:
                         op0 = 3;
