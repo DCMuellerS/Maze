@@ -697,7 +697,7 @@ void jogarSurvival(Grafo *g) {
             printf("\nPressione ENTER para continuar...");
             limparBuffer();
             getchar();
-            break;
+            return;
         }
 
         // 3. Movimento - Listar saídas disponíveis
@@ -888,7 +888,7 @@ int main() {
             } while (op0 == 2);
 
         }
-    } while (op1 != 0);
+    } while (op0 != 0);
     printf("Saindo");
     liberarGrafo(&mapa);
     return 0;
